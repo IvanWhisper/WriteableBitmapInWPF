@@ -67,10 +67,10 @@ namespace WriteableBitmapInWPF
                             Console.WriteLine(bitmap32.PixelFormat);
                             bool issc = false;
                             string str = string.Empty;
-                            //转化方式需要用GetRgb32_From_Bitmap ，Convertbmp这种方式报错内存异常
-                            //UpdateWritableBitmap(Convertbmp(bitmap32));
-                            //更新资源对象
-                            UpdateWritableBitmap(GetRgb32_From_Bitmap(bitmap32, ref issc, ref str));
+                            //Get8_From_Bitmap 初始化8位 则用该方法
+                            UpdateWritableBitmap(Get8_From_Bitmap(bmp, ref issc, ref str));
+                            //更新资源对象 Getgb32_From_Bitmap 初始化32位 则用该方法
+                            //UpdateWritableBitmap(GetRgb32_From_Bitmap(bitmap32, ref issc, ref str));
                         }
                     }
                     i++;
@@ -125,7 +125,7 @@ namespace WriteableBitmapInWPF
             return bytes;
         }
         /// <summary>
-        /// 将bmp转换为byte[]
+        /// 将bmp转换为byte[] 其实没有释放资源的引用保护 待改善
         /// </summary>
         /// <param name="image"></param>
         /// <returns></returns>
@@ -147,42 +147,56 @@ namespace WriteableBitmapInWPF
         /// <returns></returns>  
         public byte[] GetRgb32_From_Bitmap(Bitmap Source, ref bool bError, ref string errorMsg)
         {
-            bError = false;
-
-            int lPicWidth = Source.Width;
-            int lPicHeight = Source.Height;
-
-            Rectangle rect = new Rectangle(0, 0, lPicWidth, lPicHeight);
-            System.Drawing.Imaging.BitmapData bmpData = Source.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadWrite, Source.PixelFormat);
-            IntPtr iPtr = bmpData.Scan0;
-
-            int picSize = lPicWidth * lPicHeight * 4;
-
-            byte[] pRrgaByte = new byte[picSize];
-
-            System.Runtime.InteropServices.Marshal.Copy(iPtr, pRrgaByte, 0, picSize);
-
-            Source.UnlockBits(bmpData);
-
-            int iPoint = 0;
-            int A = 0;
-
+            byte[] pRrgaByte;
             try
             {
+                bError = false;
+                int lPicWidth = Source.Width;
+                int lPicHeight = Source.Height;
+                Rectangle rect = new Rectangle(0, 0, lPicWidth, lPicHeight);
+                System.Drawing.Imaging.BitmapData bmpData = Source.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadWrite, Source.PixelFormat);
+                IntPtr iPtr = bmpData.Scan0;
+                int picSize = lPicWidth * lPicHeight * 4;
+                pRrgaByte = new byte[picSize];
+                System.Runtime.InteropServices.Marshal.Copy(iPtr, pRrgaByte, 0, picSize);
+                Source.UnlockBits(bmpData);
                 bError = true;
                 errorMsg = "BMP数据转换成功";
-
                 return pRrgaByte;
             }
             catch (Exception exp)
             {
                 pRrgaByte = null;
-
                 bError = false;
                 errorMsg = exp.ToString();
-                //throw;  
             }
-
+            return null;
+        }
+        public byte[] Get8_From_Bitmap(Bitmap Source, ref bool bError, ref string errorMsg)
+        {
+            byte[] pRrgaByte;
+            try
+            {
+                bError = false;
+                int lPicWidth = Source.Width;
+                int lPicHeight = Source.Height;
+                Rectangle rect = new Rectangle(0, 0, lPicWidth, lPicHeight);
+                System.Drawing.Imaging.BitmapData bmpData = Source.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadWrite, Source.PixelFormat);
+                IntPtr iPtr = bmpData.Scan0;
+                int picSize = lPicWidth * lPicHeight;
+                pRrgaByte = new byte[picSize];
+                System.Runtime.InteropServices.Marshal.Copy(iPtr, pRrgaByte, 0, picSize);
+                Source.UnlockBits(bmpData);
+                bError = true;
+                errorMsg = "BMP数据转换成功";
+                return pRrgaByte;
+            }
+            catch (Exception exp)
+            {
+                pRrgaByte = null;
+                bError = false;
+                errorMsg = exp.ToString();
+            }
             return null;
         }
         /// <summary>
@@ -192,8 +206,8 @@ namespace WriteableBitmapInWPF
         /// <returns></returns>
         private string GetUri(int index)
         {
-            var directory = @"……"; //测试图片路径  鄙人用的12张6M/pc 3072*2048  bmp 8位黑白图
-            var extention = ".bmp";//图片格式
+            var directory = @"E:\DevelopProject\ImageTest3072_2048\"; //测试图片路径  鄙人用的12张6M/pc 3072*2048  bmp 8位黑白图
+            var extention = ".jpg";//图片格式
 
             var fileName = bitmapIndex.ToString();
             bitmapIndex = (INDEX_MAX == bitmapIndex) ? (INDEX_MIN) : (bitmapIndex + 1);
@@ -206,10 +220,10 @@ namespace WriteableBitmapInWPF
         public MainWindowViewModel()
         {
             //8位
-            //WritableBitmap = new WriteableBitmap(3072, 2048, 96, 96, System.Windows.Media.PixelFormats.Indexed8,BitmapPalettes.Gray256);
+            WritableBitmap = new WriteableBitmap(3072, 2048, 96, 96, System.Windows.Media.PixelFormats.Indexed8,BitmapPalettes.Gray256);
             //初始化一次
             //32rbg
-            WritableBitmap = new WriteableBitmap(3072, 2048, 96,96, System.Windows.Media.PixelFormats.Bgr32, null);
+            //WritableBitmap = new WriteableBitmap(3072, 2048, 96,96, System.Windows.Media.PixelFormats.Bgr32, null);
             runimg();
         }
 
